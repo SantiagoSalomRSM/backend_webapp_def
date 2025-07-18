@@ -264,6 +264,7 @@ async def handle_tally_webhook(payload: TallyWebhookPayload, background_tasks: B
         return {"error": f"Error connecting to the database: {e}"}, 500
     
     # --- Lectura de datos ---
+    logging.info("payload recibido:", payload)
     submission_id = payload.data.submissionId
     logging.info(f"[{submission_id}] Webhook recibido. Verificando Supabase (ID: {submission_id}).")
     logging.info(f"[{submission_id}] Event ID: {payload.eventId}, Event Type: {payload.eventType}")

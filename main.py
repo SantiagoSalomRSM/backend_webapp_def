@@ -20,9 +20,9 @@ if os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING"):
 app = FastAPI()
 
 # --- Elegir el modelo a usar ---
-MODEL = "gemini" 
+# MODEL = "gemini" 
 # MODEL = "deepseek" 
-# MODEL = "openai" 
+MODEL = "openai" 
 
 if MODEL == "gemini":
     logging.info("Usando modelo Gemini para la generación de contenido.")
@@ -311,7 +311,7 @@ async def generate_gemini_response(submission_id: str, prompt: str, mode: str, c
 
 # --- Endpoints FastAPI ---
 @app.post("/webhook")
-async def handle_tally_webhook(payload: TallyWebhookPayload, background_tasks: BackgroundTasks):
+async def handle_tally_webhook(payload: TallyWebhookPayload):
 
     # --- Configuración base de datos ---
     try:

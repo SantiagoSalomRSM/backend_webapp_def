@@ -6,3 +6,4 @@ google-generativeai
 openai
 dotenv
 psycopg2
+azure-monitor-opentelemetry

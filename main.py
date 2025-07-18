@@ -8,17 +8,21 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import psycopg2
 from openai import AzureOpenAI
+from azure.monitor.opentelemetry import configure_azure_monitor
+
+# Setup logger and Azure Monitor:
+logger = logging.getLogger("app")
+logger.setLevel(logging.INFO)
+if os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING"):
+    configure_azure_monitor()
 
 # --- App FastAPI ---
-app = FastAPI(title="results_fetcher",)
-
-# --- Configuración Inicial ---
-load_dotenv()
+app = FastAPI()
 
 # --- Elegir el modelo a usar ---
-# MODEL = "gemini" 
+MODEL = "gemini" 
 # MODEL = "deepseek" 
-MODEL = "openai" 
+# MODEL = "openai" 
 
 if MODEL == "gemini":
     logging.info("Usando modelo Gemini para la generación de contenido.")
@@ -233,6 +237,78 @@ async def generate_openai_response(submission_id: str, prompt: str, mode: str, c
     
     logging.info(f"[{submission_id}] Tarea OpenAI finalizada.")
 
+async def generate_gemini_response(submission_id: str, prompt: str, mode: str, cur: Any, conn: Any) -> None:
+    """Genera una respuesta de Gemini y actualiza Supabase con el resultado."""
+    logging.info(f"[{submission_id}] Iniciando tarea Gemini.")
+    
+    try:
+        # --- Llamada a Gemini API (lógica sin cambios) ---
+        model = genai.GenerativeModel(GEMINI_MODEL_NAME)
+        response = await model.generate_content_async(prompt)
+        result_text = None # Inicializa result_text
+
+        if response and hasattr(response, 'text') and response.text:
+             result_text = response.text
+             logging.info(f"[{submission_id}] Respuesta de Gemini recibida (text)")
+        elif response and hasattr(response, 'parts'):
+             result_text = "".join(part.text for part in response.parts if hasattr(part, 'text'))
+             if result_text:
+                logging.info(f"[{submission_id}] Respuesta de Gemini recibida (desde parts).")
+             else:
+                 logging.warning(f"[{submission_id}] Respuesta de Gemini (parts) sin texto")
+                 result_text = None # Asegura que no se guarde si está vacío
+        else:
+            logging.warning(f"[{submission_id}] Respuesta Gemini inesperada o sin texto")
+ 
+        # --- Actualizar Supabase con el resultado ---
+        if result_text:
+            if mode == "CONSULTING":
+                try:
+                    cur.execute("""UPDATE form_ai_db 
+                                SET status = %s, result_consulting = %s 
+                                WHERE submission_id = %s""", 
+                                (STATUS_SUCCESS, result_text, submission_id))
+                    conn.commit()
+                    logging.info(f"[{submission_id}] Resultado guardado en la base de datos.")
+                except Exception as e:
+                    logging.error(f"[{submission_id}] Error guardando resultado en base de datos: {e}")
+            else:
+                try:
+                    cur.execute("""UPDATE form_ai_db 
+                                SET status = %s, result_client = %s 
+                                WHERE submission_id = %s""", 
+                                (STATUS_SUCCESS, result_text, submission_id))
+                    conn.commit()
+                    logging.info(f"[{submission_id}] Resultado guardado en la base de datos.")
+                except Exception as e:
+                    logging.error(f"[{submission_id}] Error guardando resultado en base de datos: {e}")
+        else:
+            # Si no hay texto válido, guardar error
+            try:
+                cur.execute("""UPDATE form_ai_db 
+                            SET status = %s, result_client = %s, result_consulting = %s 
+                            WHERE submission_id = %s""", 
+                            (STATUS_ERROR, OPENAI_ERROR_MARKER, OPENAI_ERROR_MARKER, submission_id))
+                conn.commit()
+                logging.warning(f"[{submission_id}] Resultado vacío. Marcador de error guardado en la base de datos.")
+            except Exception as e:
+                logging.error(f"[{submission_id}] Error guardando marcador de error en base de datos: {e}")
+
+    except Exception as e:
+        logging.error(f"[{submission_id}] Error llamando a OpenAI: {e}")
+        try:
+            # Intenta guardar el estado de error incluso si OpenAI falló
+            cur.execute("""UPDATE form_ai_db 
+                        SET status = %s, result_client = %s, result_consulting = %s 
+                        WHERE submission_id = %s""", 
+                        (STATUS_ERROR, OPENAI_ERROR_MARKER, OPENAI_ERROR_MARKER, submission_id))
+            conn.commit()
+            logging.error(f"[{submission_id}] Estado de error guardado en la base de datos.")
+        except Exception as e:
+            logging.error(f"[{submission_id}] Error guardando estado de error en base de datos: {e}")
+    
+    logging.info(f"[{submission_id}] Tarea OpenAI finalizada.")
+
 # --- Endpoints FastAPI ---
 @app.post("/webhook")
 async def handle_tally_webhook(payload: TallyWebhookPayload, background_tasks: BackgroundTasks):
@@ -299,23 +375,40 @@ async def handle_tally_webhook(payload: TallyWebhookPayload, background_tasks: B
         logging.info(f"[{submission_id}] Estado '{STATUS_PROCESSING}' establecido en BD.")
 
 # -------------------------------------------------
-
-        # --- Generación del Prompt modularizada ---
-        prompt_cliente = generate_prompt(payload, submission_id, form_type)
-        logging.debug(f"[{submission_id}] Prompt para Gemini: {prompt_cliente[:200]}...")
-    
-        # --- Iniciar Tarea en Segundo Plano ---
-        await generate_openai_response(submission_id, prompt_cliente, form_type, cur, conn)
-        logging.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
-    
-        # --- Generación del Prompt para consultoría ---
-        prompt_consulting = generate_prompt(payload, submission_id, "CONSULTING")
-        logging.debug(f"[{submission_id}] Prompt para Gemini (Consulting): {prompt_consulting[:200]}...")
-
-        # --- Iniciar Tarea en Segundo Plano (después de respuesta cliente) ---
-        await generate_openai_response(submission_id, prompt_consulting, "CONSULTING", cur, conn)
-        logging.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
+        if MODEL == "openai":
+            # --- Generación del Prompt modularizada ---
+            prompt_cliente = generate_prompt(payload, submission_id, form_type)
+            logging.debug(f"[{submission_id}] Prompt para Gemini: {prompt_cliente[:200]}...")
         
+            # --- Iniciar Tarea en Segundo Plano ---
+            await generate_openai_response(submission_id, prompt_cliente, form_type, cur, conn)
+            logging.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
+        
+            # --- Generación del Prompt para consultoría ---
+            prompt_consulting = generate_prompt(payload, submission_id, "CONSULTING")
+            logging.debug(f"[{submission_id}] Prompt para Gemini (Consulting): {prompt_consulting[:200]}...")
+
+            # --- Iniciar Tarea en Segundo Plano (después de respuesta cliente) ---
+            await generate_openai_response(submission_id, prompt_consulting, "CONSULTING", cur, conn)
+            logging.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
+
+        elif MODEL == "gemini":
+            # --- Generación del Prompt modularizada ---
+            prompt_cliente = generate_prompt(payload, submission_id, form_type)
+            logging.debug(f"[{submission_id}] Prompt para Gemini: {prompt_cliente[:200]}...")
+        
+            # --- Iniciar Tarea en Segundo Plano ---
+            await generate_gemini_response(submission_id, prompt_cliente, form_type, cur, conn)
+            logging.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
+        
+            # --- Generación del Prompt para consultoría ---
+            prompt_consulting = generate_prompt(payload, submission_id, "CONSULTING")
+            logging.debug(f"[{submission_id}] Prompt para Gemini (Consulting): {prompt_consulting[:200]}...")
+
+            # --- Iniciar Tarea en Segundo Plano (después de respuesta cliente) ---
+            await generate_gemini_response(submission_id, prompt_consulting, "CONSULTING", cur, conn)
+            logging.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
+
         return {"message": f"Webhook processed successfully for submission {submission_id}."}, 200
     
     except Exception as e:

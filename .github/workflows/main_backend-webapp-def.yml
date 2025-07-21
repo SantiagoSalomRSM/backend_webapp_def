@@ -76,4 +76,5 @@ jobs:
         with:
           app-name: 'backend-webapp-def'
           slot-name: 'Production'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_backend_webapp_def }}
           

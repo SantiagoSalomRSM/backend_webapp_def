@@ -21,7 +21,6 @@ app = FastAPI()
 
 # --- Elegir el modelo a usar ---
 # MODEL = "gemini" 
-# MODEL = "deepseek" 
 MODEL = "openai" 
 
 if MODEL == "gemini":
@@ -36,17 +35,6 @@ if MODEL == "gemini":
         except Exception as e:
             logging.error(f"Error configurando el cliente de Gemini: {e}")
     GEMINI_MODEL_NAME = "gemini-2.0-flash" # Use a valid model
-elif MODEL == "deepseek":
-    logging.info("Usando modelo DeepSeek para la generación de contenido.")
-    DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
-    if not DEEPSEEK_API_KEY:
-        logging.error("Error: La variable de entorno DEEPSEEK_API_KEY no está configurada.")
-    else:
-        try:
-            client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
-            logging.info("Cliente de DeepSeek configurado correctamente.")
-        except Exception as e:
-            logging.error(f"Error configurando el cliente de DeepSeek: {e}")
 elif MODEL == "openai":
     logging.info("Usando modelo Azure OpenAI para la generación de contenido.")
     AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")

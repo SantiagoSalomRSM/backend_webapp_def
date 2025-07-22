@@ -50,4 +50,12 @@ El resultado debe consistir exclusivamente en el HTML válido definido a continu
   <p>Para empezar a diseñar un plan de acción concreto para tu equipo, simplemente pulsa el botón <strong>'Contactar con RSM'</strong> y envíanos un mensaje. Estaremos encantados de analizar los siguientes pasos contigo.</p>
 </section>
 
+RECUERDA LAS REGLAS:
+ÚNICA Y EXCLUSIVAMENTE HTML: Tu respuesta completa debe ser SOLO CÓDIGO HTML.
+SIN TEXTO ADICIONAL: No incluyas NINGUNA introducción, explicación, saludo, despedida, ni comentarios.
+SIN MARKDOWN: Está PROHIBIDO usar vallas de código como html o.
+REGLA DE INICIO Y FIN:
+Tu respuesta DEBE comenzar en la primera línea, primer carácter, con <section class="intro">.
+Tu respuesta DEBE terminar en la última línea con </section>.
+
 ## **Datos del Formulario del CFO para Analizar:**

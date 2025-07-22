@@ -17,27 +17,27 @@ logger.setLevel(logging.INFO)
 app = FastAPI()
 
 # --- Elegir el modelo a usar ---
-MODEL = "gemini" 
-# MODEL = "openai" 
+# MODEL = "gemini" 
+MODEL = "openai" 
 
 if MODEL == "gemini":
-    logging.info("Usando modelo Gemini para la generación de contenido.")
+    logger.info("Usando modelo Gemini para la generación de contenido.")
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     if not GEMINI_API_KEY:
-        logging.error("Error: La variable de entorno GEMINI_API_KEY no está configurada.")
+        logger.error("Error: La variable de entorno GEMINI_API_KEY no está configurada.")
     else:
         try:
             genai.configure(api_key=GEMINI_API_KEY)
-            logging.info("Cliente de Gemini configurado correctamente.")
+            logger.info("Cliente de Gemini configurado correctamente.")
         except Exception as e:
-            logging.error(f"Error configurando el cliente de Gemini: {e}")
+            logger.error(f"Error configurando el cliente de Gemini: {e}")
     GEMINI_MODEL_NAME = "gemini-2.0-flash" # Use a valid model
 elif MODEL == "openai":
-    logging.info("Usando modelo Azure OpenAI para la generación de contenido.")
+    logger.info("Usando modelo Azure OpenAI para la generación de contenido.")
     AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
     AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
     if not AZURE_OPENAI_API_KEY or not AZURE_OPENAI_ENDPOINT:
-        logging.error("Error: Las variables de entorno AZURE_OPENAI_API_KEY o AZURE_OPENAI_ENDPOINT no están configuradas.")
+        logger.error("Error: Las variables de entorno AZURE_OPENAI_API_KEY o AZURE_OPENAI_ENDPOINT no están configuradas.")
     else:
         try:
             client = AzureOpenAI(
@@ -46,7 +46,7 @@ elif MODEL == "openai":
                 api_version="2025-02-01-preview"
             )
         except Exception as e:
-            logging.error(f"Error configurando el cliente de OpenAI: {e}")
+            logger.error(f"Error configurando el cliente de OpenAI: {e}")
 
 
 # --- Constantes de Estado y TTL ---
@@ -109,7 +109,9 @@ def detect_form_type(payload: TallyWebhookPayload) -> str:
     mode = "unknown"  # Valor por defecto
     if payload.data.formName:
         formName = payload.data.formName
-        return formName.strip()  
+        logger.info(f"Form Name: {formName}")
+        logger.info(f"Form Name stripped: {formName.strip()}")
+        return formName.strip()
     return mode
 
 def load_prompt_from_file(prompt_name: str) -> str:
@@ -124,10 +126,10 @@ def load_prompt_from_file(prompt_name: str) -> str:
 def generate_prompt(payload: TallyWebhookPayload, submission_id: str, mode: str) -> str:
     """Genera un prompt basado en el tipo de formulario."""
   
-    logging.info(f"[{submission_id}] Generando Prompt.")
+    logger.info(f"[{submission_id}] Generando Prompt.")
 
     if mode == "unknown":
-        logging.warning(f"[{submission_id}] Tipo de formulario desconocido. Usando prompt genérico.")
+        logger.warning(f"[{submission_id}] Tipo de formulario desconocido. Usando prompt genérico.")
         prompt_parts = ["Analiza la siguiente respuesta de un formulario\n", "Proporciona un resumen o conclusión en formato markdown:\n\n"]
     else:
         # Extraer el prompt de la carpeta de prompts
@@ -144,7 +146,7 @@ def generate_prompt(payload: TallyWebhookPayload, submission_id: str, mode: str)
                 try:
                     value_str = f'"{",".join(map(str, value))}"'
                 except Exception as e:
-                    logging.error(f"[{submission_id}] Error convirtiendo lista a string: {e}")
+                    logger.error(f"[{submission_id}] Error convirtiendo lista a string: {e}")
                     value_str = "[Error procesando lista]"
             elif value is None:
                 value_str = "null"
@@ -159,7 +161,7 @@ def generate_prompt(payload: TallyWebhookPayload, submission_id: str, mode: str)
 # --- Lógica para interactuar con OpenAI ---
 async def generate_openai_response(submission_id: str, prompt: str, mode: str, cur: Any, conn: Any) -> None:
     """Genera una respuesta de OpenAI y actualiza la base de datos con el resultado."""
-    logging.info(f"[{submission_id}] Iniciando tarea OpenAI.")
+    logger.info(f"[{submission_id}] Iniciando tarea OpenAI.")
     
     try:
         # --- Llamada a OpenAI API ---
@@ -181,9 +183,9 @@ async def generate_openai_response(submission_id: str, prompt: str, mode: str, c
                                 WHERE submission_id = %s""", 
                                 (STATUS_SUCCESS, result_text, submission_id))
                     conn.commit()
-                    logging.info(f"[{submission_id}] Resultado guardado en la base de datos.")
+                    logger.info(f"[{submission_id}] Resultado guardado en la base de datos.")
                 except Exception as e:
-                    logging.error(f"[{submission_id}] Error guardando resultado en base de datos: {e}")
+                    logger.error(f"[{submission_id}] Error guardando resultado en base de datos: {e}")
             else:
                 try:
                     cur.execute("""UPDATE formai_db 
@@ -191,9 +193,9 @@ async def generate_openai_response(submission_id: str, prompt: str, mode: str, c
                                 WHERE submission_id = %s""", 
                                 (STATUS_SUCCESS, result_text, submission_id))
                     conn.commit()
-                    logging.info(f"[{submission_id}] Resultado guardado en la base de datos.")
+                    logger.info(f"[{submission_id}] Resultado guardado en la base de datos.")
                 except Exception as e:
-                    logging.error(f"[{submission_id}] Error guardando resultado en base de datos: {e}")
+                    logger.error(f"[{submission_id}] Error guardando resultado en base de datos: {e}")
         else:
             # Si no hay texto válido, guardar error
             try:
@@ -202,12 +204,12 @@ async def generate_openai_response(submission_id: str, prompt: str, mode: str, c
                             WHERE submission_id = %s""", 
                             (STATUS_ERROR, OPENAI_ERROR_MARKER, OPENAI_ERROR_MARKER, submission_id))
                 conn.commit()
-                logging.warning(f"[{submission_id}] Resultado vacío. Marcador de error guardado en la base de datos.")
+                logger.warning(f"[{submission_id}] Resultado vacío. Marcador de error guardado en la base de datos.")
             except Exception as e:
-                logging.error(f"[{submission_id}] Error guardando marcador de error en base de datos: {e}")
+                logger.error(f"[{submission_id}] Error guardando marcador de error en base de datos: {e}")
 
     except Exception as e:
-        logging.error(f"[{submission_id}] Error llamando a OpenAI: {e}")
+        logger.error(f"[{submission_id}] Error llamando a OpenAI: {e}")
         try:
             # Intenta guardar el estado de error incluso si OpenAI falló
             cur.execute("""UPDATE formai_db 
@@ -215,15 +217,15 @@ async def generate_openai_response(submission_id: str, prompt: str, mode: str, c
                         WHERE submission_id = %s""", 
                         (STATUS_ERROR, OPENAI_ERROR_MARKER, OPENAI_ERROR_MARKER, submission_id))
             conn.commit()
-            logging.error(f"[{submission_id}] Estado de error guardado en la base de datos.")
+            logger.error(f"[{submission_id}] Estado de error guardado en la base de datos.")
         except Exception as e:
-            logging.error(f"[{submission_id}] Error guardando estado de error en base de datos: {e}")
+            logger.error(f"[{submission_id}] Error guardando estado de error en base de datos: {e}")
     
-    logging.info(f"[{submission_id}] Tarea OpenAI finalizada.")
+    logger.info(f"[{submission_id}] Tarea OpenAI finalizada.")
 
 async def generate_gemini_response(submission_id: str, prompt: str, mode: str, cur: Any, conn: Any) -> None:
     """Genera una respuesta de Gemini y actualiza Supabase con el resultado."""
-    logging.info(f"[{submission_id}] Iniciando tarea Gemini.")
+    logger.info(f"[{submission_id}] Iniciando tarea Gemini.")
     
     try:
         # --- Llamada a Gemini API (lógica sin cambios) ---
@@ -233,16 +235,16 @@ async def generate_gemini_response(submission_id: str, prompt: str, mode: str, c
 
         if response and hasattr(response, 'text') and response.text:
              result_text = response.text
-             logging.info(f"[{submission_id}] Respuesta de Gemini recibida (text)")
+             logger.info(f"[{submission_id}] Respuesta de Gemini recibida (text)")
         elif response and hasattr(response, 'parts'):
              result_text = "".join(part.text for part in response.parts if hasattr(part, 'text'))
              if result_text:
-                logging.info(f"[{submission_id}] Respuesta de Gemini recibida (desde parts).")
+                logger.info(f"[{submission_id}] Respuesta de Gemini recibida (desde parts).")
              else:
-                 logging.warning(f"[{submission_id}] Respuesta de Gemini (parts) sin texto")
+                 logger.warning(f"[{submission_id}] Respuesta de Gemini (parts) sin texto")
                  result_text = None # Asegura que no se guarde si está vacío
         else:
-            logging.warning(f"[{submission_id}] Respuesta Gemini inesperada o sin texto")
+            logger.warning(f"[{submission_id}] Respuesta Gemini inesperada o sin texto")
  
         # --- Actualizar Supabase con el resultado ---
         if result_text:
@@ -253,9 +255,9 @@ async def generate_gemini_response(submission_id: str, prompt: str, mode: str, c
                                 WHERE submission_id = %s""", 
                                 (STATUS_SUCCESS, result_text, submission_id))
                     conn.commit()
-                    logging.info(f"[{submission_id}] Resultado guardado en la base de datos.")
+                    logger.info(f"[{submission_id}] Resultado guardado en la base de datos.")
                 except Exception as e:
-                    logging.error(f"[{submission_id}] Error guardando resultado en base de datos: {e}")
+                    logger.error(f"[{submission_id}] Error guardando resultado en base de datos: {e}")
             else:
                 try:
                     cur.execute("""UPDATE formai_db 
@@ -263,9 +265,9 @@ async def generate_gemini_response(submission_id: str, prompt: str, mode: str, c
                                 WHERE submission_id = %s""", 
                                 (STATUS_SUCCESS, result_text, submission_id))
                     conn.commit()
-                    logging.info(f"[{submission_id}] Resultado guardado en la base de datos.")
+                    logger.info(f"[{submission_id}] Resultado guardado en la base de datos.")
                 except Exception as e:
-                    logging.error(f"[{submission_id}] Error guardando resultado en base de datos: {e}")
+                    logger.error(f"[{submission_id}] Error guardando resultado en base de datos: {e}")
         else:
             # Si no hay texto válido, guardar error
             try:
@@ -274,12 +276,12 @@ async def generate_gemini_response(submission_id: str, prompt: str, mode: str, c
                             WHERE submission_id = %s""", 
                             (STATUS_ERROR, OPENAI_ERROR_MARKER, OPENAI_ERROR_MARKER, submission_id))
                 conn.commit()
-                logging.warning(f"[{submission_id}] Resultado vacío. Marcador de error guardado en la base de datos.")
+                logger.warning(f"[{submission_id}] Resultado vacío. Marcador de error guardado en la base de datos.")
             except Exception as e:
-                logging.error(f"[{submission_id}] Error guardando marcador de error en base de datos: {e}")
+                logger.error(f"[{submission_id}] Error guardando marcador de error en base de datos: {e}")
 
     except Exception as e:
-        logging.error(f"[{submission_id}] Error llamando a OpenAI: {e}")
+        logger.error(f"[{submission_id}] Error llamando a OpenAI: {e}")
         try:
             # Intenta guardar el estado de error incluso si OpenAI falló
             cur.execute("""UPDATE formai_db 
@@ -287,11 +289,11 @@ async def generate_gemini_response(submission_id: str, prompt: str, mode: str, c
                         WHERE submission_id = %s""", 
                         (STATUS_ERROR, OPENAI_ERROR_MARKER, OPENAI_ERROR_MARKER, submission_id))
             conn.commit()
-            logging.error(f"[{submission_id}] Estado de error guardado en la base de datos.")
+            logger.error(f"[{submission_id}] Estado de error guardado en la base de datos.")
         except Exception as e:
-            logging.error(f"[{submission_id}] Error guardando estado de error en base de datos: {e}")
+            logger.error(f"[{submission_id}] Error guardando estado de error en base de datos: {e}")
     
-    logging.info(f"[{submission_id}] Tarea OpenAI finalizada.")
+    logger.info(f"[{submission_id}] Tarea OpenAI finalizada.")
 
 # --- Endpoints FastAPI ---
 @app.post("/webhook")
@@ -305,7 +307,7 @@ async def handle_tally_webhook(payload: TallyWebhookPayload):
         password = os.getenv("POSTGRES_PASSWORD")
         port = int(os.getenv("POSTGRES_PORT", 5432))  # Usa 5432 como valor por defecto si no se encuentra
     except KeyError as e:
-        logging.error(f"Missing environment variable: {e}")
+        logger.error(f"Missing environment variable: {e}")
         return {"error": f"Missing environment variable: {e}"}, 500 
 
     try:
@@ -320,30 +322,30 @@ async def handle_tally_webhook(payload: TallyWebhookPayload):
             )
         cur = conn.cursor()
     except Exception as e:
-        logging.error(f"Error connecting to the database: {e}")
+        logger.error(f"Error connecting to the database: {e}")
         return {"error": f"Error connecting to the database: {e}"}, 500
     
     # --- Lectura de datos ---
-    logging.info("payload recibido:", payload)
+    logger.info("payload recibido:", payload)
     submission_id = payload.data.submissionId
-    logging.info(f"[{submission_id}] Webhook recibido. Verificando Supabase (ID: {submission_id}).")
-    logging.info(f"[{submission_id}] Event ID: {payload.eventId}, Event Type: {payload.eventType}")
+    logger.info(f"[{submission_id}] Webhook recibido. Verificando Supabase (ID: {submission_id}).")
+    logger.info(f"[{submission_id}] Event ID: {payload.eventId}, Event Type: {payload.eventType}")
 
     try:
         # Verificar si ya existe estado en la tabla
         cur.execute("SELECT status FROM formai_db WHERE submission_id = %s", (submission_id,))
         row = cur.fetchone()
         if row is None:
-            logging.info(f"[{submission_id}] No se encontró estado previo. Creando nuevo registro.")
+            logger.info(f"[{submission_id}] No se encontró estado previo. Creando nuevo registro.")
         else:
-            logging.info(f"[{submission_id}] Estado previo encontrado: {row[0]}.")
+            logger.info(f"[{submission_id}] Estado previo encontrado: {row[0]}.")
             status = cur.fetchone()[0]
             if status:
                 if status == STATUS_PROCESSING:
-                    logging.warning(f"[{submission_id}] Webhook ignorado: ya está en estado '{STATUS_PROCESSING}'.")
+                    logger.warning(f"[{submission_id}] Webhook ignorado: ya está en estado '{STATUS_PROCESSING}'.")
                     return {"message": f"Webhook ignored: already in processing state '{STATUS_PROCESSING}'."}, 200
                 else:
-                    logging.warning(f"[{submission_id}] Webhook ignorado: ya tiene estado final {status}.")
+                    logger.warning(f"[{submission_id}] Webhook ignorado: ya tiene estado final {status}.")
                     return {"message": f"Webhook ignored: already has final state '{status}'."}, 200
         
         # Extraer información relevante del formulario
@@ -356,47 +358,47 @@ async def handle_tally_webhook(payload: TallyWebhookPayload):
         conn.commit()
 
         # Si llegamos aquí, la key se creó y se puso en 'processing'
-        logging.info(f"[{submission_id}] Estado '{STATUS_PROCESSING}' establecido en BD.")
+        logger.info(f"[{submission_id}] Estado '{STATUS_PROCESSING}' establecido en BD.")
 
 # -------------------------------------------------
         if MODEL == "openai":
             # --- Generación del Prompt modularizada ---
             prompt_cliente = generate_prompt(payload, submission_id, form_type)
-            logging.debug(f"[{submission_id}] Prompt para Gemini: {prompt_cliente[:200]}...")
+            logger.debug(f"[{submission_id}] Prompt para Gemini: {prompt_cliente[:200]}...")
         
             # --- Iniciar Tarea en Segundo Plano ---
             await generate_openai_response(submission_id, prompt_cliente, form_type, cur, conn)
-            logging.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
+            logger.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
         
             # --- Generación del Prompt para consultoría ---
             prompt_consulting = generate_prompt(payload, submission_id, "CONSULTING")
-            logging.debug(f"[{submission_id}] Prompt para Gemini (Consulting): {prompt_consulting[:200]}...")
+            logger.debug(f"[{submission_id}] Prompt para Gemini (Consulting): {prompt_consulting[:200]}...")
 
             # --- Iniciar Tarea en Segundo Plano (después de respuesta cliente) ---
             await generate_openai_response(submission_id, prompt_consulting, "CONSULTING", cur, conn)
-            logging.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
+            logger.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
 
         elif MODEL == "gemini":
             # --- Generación del Prompt modularizada ---
             prompt_cliente = generate_prompt(payload, submission_id, form_type)
-            logging.debug(f"[{submission_id}] Prompt para Gemini: {prompt_cliente[:200]}...")
+            logger.debug(f"[{submission_id}] Prompt para Gemini: {prompt_cliente[:200]}...")
         
             # --- Iniciar Tarea en Segundo Plano ---
             await generate_gemini_response(submission_id, prompt_cliente, form_type, cur, conn)
-            logging.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
+            logger.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
         
             # --- Generación del Prompt para consultoría ---
             prompt_consulting = generate_prompt(payload, submission_id, "CONSULTING")
-            logging.debug(f"[{submission_id}] Prompt para Gemini (Consulting): {prompt_consulting[:200]}...")
+            logger.debug(f"[{submission_id}] Prompt para Gemini (Consulting): {prompt_consulting[:200]}...")
 
             # --- Iniciar Tarea en Segundo Plano (después de respuesta cliente) ---
             await generate_gemini_response(submission_id, prompt_consulting, "CONSULTING", cur, conn)
-            logging.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
+            logger.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
 
         return {"message": f"Webhook processed successfully for submission {submission_id}."}, 200
     
     except Exception as e:
-        logging.error(f"[{submission_id}] Error procesando webhook: {e}", exc_info=True)
+        logger.error(f"[{submission_id}] Error procesando webhook: {e}", exc_info=True)
         # Devolver error 500 si algo falla aquí es crítico
         return {"error": f"Error processing webhook: {e}"}, 500
     finally:
@@ -405,7 +407,7 @@ async def handle_tally_webhook(payload: TallyWebhookPayload):
             cur.close()
         if conn:
             conn.close()
-        logging.info(f"[{submission_id}] Conexión a BD cerrada.")
+        logger.info(f"[{submission_id}] Conexión a BD cerrada.")
 
 @app.get("/")
 async def root():

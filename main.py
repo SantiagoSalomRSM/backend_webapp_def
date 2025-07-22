@@ -8,13 +8,10 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import psycopg2
 from openai import AzureOpenAI
-from azure.monitor.opentelemetry import configure_azure_monitor
 
 # Setup logger and Azure Monitor:
 logger = logging.getLogger("app")
 logger.setLevel(logging.INFO)
-if os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING"):
-    configure_azure_monitor()
 
 # --- App FastAPI ---
 app = FastAPI()

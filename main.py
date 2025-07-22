@@ -17,8 +17,8 @@ logger.setLevel(logging.INFO)
 app = FastAPI()
 
 # --- Elegir el modelo a usar ---
-MODEL = "gemini" 
-# MODEL = "openai" 
+# MODEL = "gemini" 
+MODEL = "openai" 
 
 if MODEL == "gemini":
     logging.info("Usando modelo Gemini para la generación de contenido.")

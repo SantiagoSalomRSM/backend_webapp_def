@@ -177,7 +177,7 @@ async def generate_openai_response(submission_id: str, prompt: str, mode: str, c
         if result_text:
             if mode == "CONSULTING":
                 try:
-                    cur.execute("""UPDATE form_ai_db 
+                    cur.execute("""UPDATE formai_db 
                                 SET status = %s, result_consulting = %s 
                                 WHERE submission_id = %s""", 
                                 (STATUS_SUCCESS, result_text, submission_id))
@@ -187,7 +187,7 @@ async def generate_openai_response(submission_id: str, prompt: str, mode: str, c
                     logging.error(f"[{submission_id}] Error guardando resultado en base de datos: {e}")
             else:
                 try:
-                    cur.execute("""UPDATE form_ai_db 
+                    cur.execute("""UPDATE formai_db 
                                 SET status = %s, result_client = %s 
                                 WHERE submission_id = %s""", 
                                 (STATUS_SUCCESS, result_text, submission_id))
@@ -198,7 +198,7 @@ async def generate_openai_response(submission_id: str, prompt: str, mode: str, c
         else:
             # Si no hay texto válido, guardar error
             try:
-                cur.execute("""UPDATE form_ai_db 
+                cur.execute("""UPDATE formai_db 
                             SET status = %s, result_client = %s, result_consulting = %s 
                             WHERE submission_id = %s""", 
                             (STATUS_ERROR, OPENAI_ERROR_MARKER, OPENAI_ERROR_MARKER, submission_id))
@@ -211,7 +211,7 @@ async def generate_openai_response(submission_id: str, prompt: str, mode: str, c
         logging.error(f"[{submission_id}] Error llamando a OpenAI: {e}")
         try:
             # Intenta guardar el estado de error incluso si OpenAI falló
-            cur.execute("""UPDATE form_ai_db 
+            cur.execute("""UPDATE formai_db 
                         SET status = %s, result_client = %s, result_consulting = %s 
                         WHERE submission_id = %s""", 
                         (STATUS_ERROR, OPENAI_ERROR_MARKER, OPENAI_ERROR_MARKER, submission_id))
@@ -249,7 +249,7 @@ async def generate_gemini_response(submission_id: str, prompt: str, mode: str, c
         if result_text:
             if mode == "CONSULTING":
                 try:
-                    cur.execute("""UPDATE form_ai_db 
+                    cur.execute("""UPDATE formai_db 
                                 SET status = %s, result_consulting = %s 
                                 WHERE submission_id = %s""", 
                                 (STATUS_SUCCESS, result_text, submission_id))
@@ -259,7 +259,7 @@ async def generate_gemini_response(submission_id: str, prompt: str, mode: str, c
                     logging.error(f"[{submission_id}] Error guardando resultado en base de datos: {e}")
             else:
                 try:
-                    cur.execute("""UPDATE form_ai_db 
+                    cur.execute("""UPDATE formai_db 
                                 SET status = %s, result_client = %s 
                                 WHERE submission_id = %s""", 
                                 (STATUS_SUCCESS, result_text, submission_id))
@@ -270,7 +270,7 @@ async def generate_gemini_response(submission_id: str, prompt: str, mode: str, c
         else:
             # Si no hay texto válido, guardar error
             try:
-                cur.execute("""UPDATE form_ai_db 
+                cur.execute("""UPDATE formai_db 
                             SET status = %s, result_client = %s, result_consulting = %s 
                             WHERE submission_id = %s""", 
                             (STATUS_ERROR, OPENAI_ERROR_MARKER, OPENAI_ERROR_MARKER, submission_id))
@@ -283,7 +283,7 @@ async def generate_gemini_response(submission_id: str, prompt: str, mode: str, c
         logging.error(f"[{submission_id}] Error llamando a OpenAI: {e}")
         try:
             # Intenta guardar el estado de error incluso si OpenAI falló
-            cur.execute("""UPDATE form_ai_db 
+            cur.execute("""UPDATE formai_db 
                         SET status = %s, result_client = %s, result_consulting = %s 
                         WHERE submission_id = %s""", 
                         (STATUS_ERROR, OPENAI_ERROR_MARKER, OPENAI_ERROR_MARKER, submission_id))
@@ -332,7 +332,7 @@ async def handle_tally_webhook(payload: TallyWebhookPayload):
 
     try:
         # Verificar si ya existe estado en la tabla
-        cur.execute("SELECT status FROM form_ai_db WHERE submission_id = %s", (submission_id,))
+        cur.execute("SELECT status FROM formai_db WHERE submission_id = %s", (submission_id,))
         row = cur.fetchone()
         if row is None:
             logging.info(f"[{submission_id}] No se encontró estado previo. Creando nuevo registro.")
@@ -351,7 +351,7 @@ async def handle_tally_webhook(payload: TallyWebhookPayload):
         form_type = detect_form_type(payload)
         response = summarize_payload(payload)
         
-        cur.execute("""INSERT INTO form_ai_db (submission_id, status, result_client, result_consulting, user_responses, form_type) 
+        cur.execute("""INSERT INTO formai_db (submission_id, status, result_client, result_consulting, user_responses, form_type) 
                     VALUES (%s, %s, %s, %s, %s, %s)""", 
                     (submission_id, STATUS_PROCESSING, None, None, response, form_type))
         conn.commit()

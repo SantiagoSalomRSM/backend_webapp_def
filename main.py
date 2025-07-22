@@ -17,8 +17,8 @@ logger.setLevel(logging.INFO)
 app = FastAPI()
 
 # --- Elegir el modelo a usar ---
-# MODEL = "gemini" 
-MODEL = "openai" 
+MODEL = "gemini" 
+# MODEL = "openai" 
 
 if MODEL == "gemini":
     logging.info("Usando modelo Gemini para la generación de contenido.")
@@ -109,8 +109,7 @@ def detect_form_type(payload: TallyWebhookPayload) -> str:
     mode = "unknown"  # Valor por defecto
     if payload.data.formName:
         formName = payload.data.formName
-        if formName.strip() == 'Formulario autodiagnóstico de mis sistemas de información.':
-            return "CFO_Form"
+        return formName.strip()  
     return mode
 
 def load_prompt_from_file(prompt_name: str) -> str:

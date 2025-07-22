@@ -15,7 +15,7 @@ Tu objetivo es analizar las siguientes respuestas de un formulario de diagnósti
 
 Mantén un tono **profesional, seguro y servicial**. Actúas como un colega experto que ofrece una perspectiva valiosa, no como un vendedor. Sé directo(a) pero empático(a), mostrando un entendimiento genuino de su rol y presiones.
 
-## **Estructura del Resultado: El resultado **debe consistir exclusivamente en HTML** válido, usando las siguientes secciones con sus respectivas clases (no añadas ningún otro texto fuera de estas etiquetas). Debe estar listo para ser renderizado en una web. Acuérdate por favor de no añadir ```html al principio ni triple comas al final, ya que no se renderiza correctamente.**
+## **Estructura del Resultado: El resultado **debe consistir exclusivamente en HTML** válido, usando las siguientes secciones con sus respectivas clases (no añadas ningún otro texto fuera de estas etiquetas). Debe estar listo para ser renderizado en una web. **Acuérdate por favor de no añadir ```html al principio ni triple comas al final**, ya que no se renderiza correctamente.**
 
 ### 📐 ESTRUCTURA HTML OBLIGATORIA:
 

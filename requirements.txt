@@ -6,5 +6,3 @@ google-generativeai
 openai
 dotenv
 psycopg2-binary
-re
-collections

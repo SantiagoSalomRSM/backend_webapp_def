@@ -8,8 +8,6 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import psycopg2
 from openai import AzureOpenAI
-import re
-from collections import OrderedDict
 
 # Setup logger and Azure Monitor:
 logger = logging.getLogger("app")
@@ -90,38 +88,21 @@ class UpdateResultPayload(BaseModel):
 
 # Inicializar el cliente de OpenAI
 
-def summarize_payload(payload: TallyWebhookPayload) -> Dict[str, str]:
-    """
-    Extrae las respuestas del payload de Tally y las devuelve como un diccionario.
-    """
-    responses = OrderedDict()
-    
+def summarize_payload(payload: TallyWebhookPayload) -> str:
+    """Genera un resumen entendible del Tally payload."""
+    lines = ["Respuestas:"]
     for field in payload.data.fields:
-        # Usar la etiqueta (label) si existe, si no, usar la clave (key)
-        question = field.label or field.key
+        label = field.label or field.key
         value = field.value
-        
-        # Formatear el valor para que sea legible
-        value_str = ""
-        if value is None:
-            value_str = "No respondido"
-        elif isinstance(value, list) and field.options:
-            # Manejar respuestas de opción múltiple (CHECKBOXES, MULTIPLE_CHOICE con selección múltiple)
+        # Si el valor es una lista y tiene opciones, mapeamos los IDs a texto
+        if isinstance(value, list) and field.options:
             id_to_text = {opt.id: opt.text for opt in field.options}
-            value_texts = [id_to_text.get(v, str(v)) for v in value]
+            value_texts = [id_to_text.get(v, v) for v in value]
             value_str = ", ".join(value_texts)
         else:
-            # Para todos los demás tipos de campos, simplemente convertir a string
             value_str = str(value)
-            
-        # Si la respuesta está vacía o es un valor por defecto que no aporta info, estandarizarlo
-        if not value_str or value_str == "--":
-            value_str = "No especificado"
-
-        responses[question] = value_str
-            
-    return dict(responses) # Convertir a dict normal para cumplir con el type hint
-
+        lines.append(f"- {label}: {value_str}")
+    return "\n".join(lines)
 
 def detect_form_type(payload: TallyWebhookPayload) -> str:
     """Detecta el form type basándose en la primera label o key."""
@@ -393,11 +374,11 @@ async def handle_tally_webhook(payload: TallyWebhookPayload):
         
         # Extraer información relevante del formulario
         form_type = detect_form_type(payload)
-        responses = summarize_payload(payload)
+        response = summarize_payload(payload)
         
         cur.execute("""INSERT INTO formai_db (submission_id, status, result_client, result_consulting, user_responses, form_type, created_at, updated_at) 
                     VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())""", 
-                    (submission_id, STATUS_PROCESSING, None, None, responses, form_type))
+                    (submission_id, STATUS_PROCESSING, None, None, response, form_type))
         conn.commit()
 
         # Si llegamos aquí, la key se creó y se puso en 'processing'

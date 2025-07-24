@@ -90,54 +90,38 @@ class UpdateResultPayload(BaseModel):
 
 # Inicializar el cliente de OpenAI
 
-def summarize_payload(payload: TallyWebhookPayload) -> str:
-    """Genera un resumen entendible del Tally payload."""
-    lines = ["Respuestas:"]
+def summarize_payload(payload: TallyWebhookPayload) -> Dict[str, str]:
+    """
+    Extrae las respuestas del payload de Tally y las devuelve como un diccionario.
+    """
+    responses = OrderedDict()
+    
     for field in payload.data.fields:
-        label = field.label or field.key
+        # Usar la etiqueta (label) si existe, si no, usar la clave (key)
+        question = field.label or field.key
         value = field.value
-        # Si el valor es una lista y tiene opciones, mapeamos los IDs a texto
-        if isinstance(value, list) and field.options:
+        
+        # Formatear el valor para que sea legible
+        value_str = ""
+        if value is None:
+            value_str = "No respondido"
+        elif isinstance(value, list) and field.options:
+            # Manejar respuestas de opción múltiple (CHECKBOXES, MULTIPLE_CHOICE con selección múltiple)
             id_to_text = {opt.id: opt.text for opt in field.options}
-            value_texts = [id_to_text.get(v, v) for v in value]
+            value_texts = [id_to_text.get(v, str(v)) for v in value]
             value_str = ", ".join(value_texts)
         else:
+            # Para todos los demás tipos de campos, simplemente convertir a string
             value_str = str(value)
-        lines.append(f"- {label}: {value_str}")
-    raw_string =  "\n".join(lines)
-
-    chunks = re.split(r'(?=\n- )', raw_string.strip())
-    
-    responses = OrderedDict()
-
-    # The first chunk might be "Respuestas:", we can process it or skip it.
-    # Let's start from the first real question.
-    if chunks[0].strip().startswith("Respuestas:"):
-        # Process the first response which is not preceded by "\n- "
-        first_response_block = chunks[0].replace("Respuestas:", "", 1).strip()
-        if first_response_block:
-             chunks[0] = "- " + first_response_block
-
-    for chunk in chunks:
-        if not chunk.strip():
-            continue
-        
-        # Split each chunk into lines. The first line is the question,
-        # the second is the answer.
-        lines = [line.strip() for line in chunk.strip().split('\n', 1)]
-        
-        if len(lines) == 2:
-            question = lines[0].strip('- ').strip()
-            # The answer starts with a colon, remove it and strip whitespace
-            answer = lines[1].strip(': ').strip()
             
-            # Handle empty answers gracefully
-            if answer in ["--", "None"]:
-                answer = "No especificado"
+        # Si la respuesta está vacía o es un valor por defecto que no aporta info, estandarizarlo
+        if not value_str or value_str == "--":
+            value_str = "No especificado"
 
-            responses[question] = answer
+        responses[question] = value_str
             
-    return responses
+    return dict(responses) # Convertir a dict normal para cumplir con el type hint
+
 
 def detect_form_type(payload: TallyWebhookPayload) -> str:
     """Detecta el form type basándose en la primera label o key."""

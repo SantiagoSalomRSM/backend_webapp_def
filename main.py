@@ -174,7 +174,18 @@ async def generate_openai_response(submission_id: str, prompt: str, mode: str, c
 
         result_text = response.choices[0].message.content
 
-        # --- Actualizar Supabase con el resultado ---
+        # --- Limpieza del mensaje ---
+        clean_text = result_text.strip()
+
+        if clean_text.startswith("```html"):
+            clean_text = clean_text.removeprefix("```html")
+
+        if clean_text.endswith("```"):
+            clean_text = clean_text.removesuffix("```")
+
+        result_text = clean_text.strip()
+
+        # --- Actualizar Base de datos con el resultado ---
         if result_text:
             if mode == "CONSULTING":
                 try:
@@ -224,7 +235,7 @@ async def generate_openai_response(submission_id: str, prompt: str, mode: str, c
     logger.info(f"[{submission_id}] Tarea OpenAI finalizada.")
 
 async def generate_gemini_response(submission_id: str, prompt: str, mode: str, cur: Any, conn: Any) -> None:
-    """Genera una respuesta de Gemini y actualiza Supabase con el resultado."""
+    """Genera una respuesta de Gemini y actualiza base de datos con el resultado."""
     logger.info(f"[{submission_id}] Iniciando tarea Gemini.")
     
     try:
@@ -246,7 +257,7 @@ async def generate_gemini_response(submission_id: str, prompt: str, mode: str, c
         else:
             logger.warning(f"[{submission_id}] Respuesta Gemini inesperada o sin texto")
  
-        # --- Actualizar Supabase con el resultado ---
+        # --- Actualizar base de datos con el resultado ---
         if result_text:
             if mode == "CONSULTING":
                 try:
@@ -328,7 +339,7 @@ async def handle_tally_webhook(payload: TallyWebhookPayload):
     # --- Lectura de datos ---
     logger.info(f"payload recibido: {payload}")
     submission_id = payload.data.submissionId
-    logger.info(f"[{submission_id}] Webhook recibido. Verificando Supabase (ID: {submission_id}).")
+    logger.info(f"[{submission_id}] Webhook recibido. Verificando (ID: {submission_id}).")
     logger.info(f"[{submission_id}] Event ID: {payload.eventId}, Event Type: {payload.eventType}")
 
     try:

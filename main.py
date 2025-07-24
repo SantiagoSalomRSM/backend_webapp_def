@@ -174,19 +174,20 @@ async def generate_openai_response(submission_id: str, prompt: str, mode: str, c
 
         result_text = response.choices[0].message.content
 
-        # --- Limpieza del mensaje ---
-        clean_text = result_text.strip()
-
-        if clean_text.startswith("```html"):
-            clean_text = clean_text.removeprefix("```html")
-
-        if clean_text.endswith("```"):
-            clean_text = clean_text.removesuffix("```")
-
-        result_text = clean_text.strip()
-
         # --- Actualizar Base de datos con el resultado ---
         if result_text:
+
+            # --- Limpieza del mensaje ---
+            clean_text = result_text.strip()
+
+            if clean_text.startswith("```html"):
+                clean_text = clean_text.removeprefix("```html")
+
+            if clean_text.endswith("```"):
+                clean_text = clean_text.removesuffix("```")
+
+            result_text = clean_text.strip()
+
             if mode == "CONSULTING":
                 try:
                     cur.execute("""UPDATE formai_db 
@@ -256,9 +257,21 @@ async def generate_gemini_response(submission_id: str, prompt: str, mode: str, c
                  result_text = None # Asegura que no se guarde si está vacío
         else:
             logger.warning(f"[{submission_id}] Respuesta Gemini inesperada o sin texto")
- 
+
         # --- Actualizar base de datos con el resultado ---
         if result_text:
+
+            # --- Limpieza del mensaje ---
+            clean_text = result_text.strip()
+
+            if clean_text.startswith("```html"):
+                clean_text = clean_text.removeprefix("```html")
+
+            if clean_text.endswith("```"):
+                clean_text = clean_text.removesuffix("```")
+
+            result_text = clean_text.strip()
+
             if mode == "CONSULTING":
                 try:
                     cur.execute("""UPDATE formai_db 

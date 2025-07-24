@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import psycopg2
 from openai import AzureOpenAI
+import re
+from collections import OrderedDict
 
 # Setup logger and Azure Monitor:
 logger = logging.getLogger("app")
@@ -102,7 +104,40 @@ def summarize_payload(payload: TallyWebhookPayload) -> str:
         else:
             value_str = str(value)
         lines.append(f"- {label}: {value_str}")
-    return "\n".join(lines)
+    raw_string =  "\n".join(lines)
+
+    chunks = re.split(r'(?=\n- )', raw_string.strip())
+    
+    responses = OrderedDict()
+
+    # The first chunk might be "Respuestas:", we can process it or skip it.
+    # Let's start from the first real question.
+    if chunks[0].strip().startswith("Respuestas:"):
+        # Process the first response which is not preceded by "\n- "
+        first_response_block = chunks[0].replace("Respuestas:", "", 1).strip()
+        if first_response_block:
+             chunks[0] = "- " + first_response_block
+
+    for chunk in chunks:
+        if not chunk.strip():
+            continue
+        
+        # Split each chunk into lines. The first line is the question,
+        # the second is the answer.
+        lines = [line.strip() for line in chunk.strip().split('\n', 1)]
+        
+        if len(lines) == 2:
+            question = lines[0].strip('- ').strip()
+            # The answer starts with a colon, remove it and strip whitespace
+            answer = lines[1].strip(': ').strip()
+            
+            # Handle empty answers gracefully
+            if answer in ["--", "None"]:
+                answer = "No especificado"
+
+            responses[question] = answer
+            
+    return responses
 
 def detect_form_type(payload: TallyWebhookPayload) -> str:
     """Detecta el form type basándose en la primera label o key."""
@@ -374,11 +409,11 @@ async def handle_tally_webhook(payload: TallyWebhookPayload):
         
         # Extraer información relevante del formulario
         form_type = detect_form_type(payload)
-        response = summarize_payload(payload)
+        responses = summarize_payload(payload)
         
         cur.execute("""INSERT INTO formai_db (submission_id, status, result_client, result_consulting, user_responses, form_type, created_at, updated_at) 
                     VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())""", 
-                    (submission_id, STATUS_PROCESSING, None, None, response, form_type))
+                    (submission_id, STATUS_PROCESSING, None, None, responses, form_type))
         conn.commit()
 
         # Si llegamos aquí, la key se creó y se puso en 'processing'

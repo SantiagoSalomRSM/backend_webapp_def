@@ -13,7 +13,7 @@ Posicione sutilmente a RSM como el socio experto.
 Concluya con una llamada a la acción clara y motivadora para contactar con RSM.
 
 [SECCIÓN 3: FORMATO DE SALIDA – CONTRATO IRREVOCABLE]
-📐 REGLAS CRÍTICAS DE FORMATO DE SALIDA (OBLIGATORIO CUMPLIR)
+REGLAS CRÍTICAS DE FORMATO DE SALIDA (OBLIGATORIO CUMPLIR)
 
 SALIDA EXCLUSIVAMENTE HTML: La respuesta debe ser únicamente el bloque de código HTML. Ningún texto explicativo antes o después.
 
@@ -32,12 +32,12 @@ REGENERACIÓN EN CASO DE DESVIACIÓN: Si detectas que has infringido cualquier r
 [SECCIÓN 4: ESTRUCTURA HTML OBLIGATORIA]
 Debes generar exclusivamente estas secciones, en este orden, con estas clases y etiquetas:
 <section class="intro">
-<h2>🚀 Gracias: Un Análisis Rápido de tu Situación</h2>
+<h2>Gracias: Un Análisis Rápido de tu Situación</h2>
 <p>[Texto personalizado de agradecimiento y reconocimiento, incorporando los problemas detectados y el sector {{sector}}]</p>
 </section>
 
 <section class="challenges">
-<h2>🔑 Desafíos Clave que Hemos Identificado</h2>
+<h2>Desafíos Clave que Hemos Identificado</h2>
 <ul>
 <li>[Desafío 1 basado en datos del formulario - incluir métricas/valoraciones cuando existan]</li>
 <li>[Desafío 2 ...]</li>
@@ -47,7 +47,7 @@ Debes generar exclusivamente estas secciones, en este orden, con estas clases y 
 </section>
 
 <section class="solutions">
-<h2>💡 Cómo Podemos Ayudar: Tu Camino a Seguir</h2>
+<h2>Cómo Podemos Ayudar: Tu Camino a Seguir</h2>
 <ul>
 <li><strong>[Solución 1]:</strong> [Descripción breve y específica, alineada con desafío 1]</li>
 <li><strong>[Solución 2]:</strong> [Descripción breve y específica, alineada con desafío 2]</li>
@@ -57,7 +57,7 @@ Debes generar exclusivamente estas secciones, en este orden, con estas clases y 
 </section>
 
 <section class="call-to-action">
-<h2>📞 Hablemos de tu Estrategia</h2>
+<h2>Hablemos de tu Estrategia</h2>
 <p>[Texto que normaliza los desafíos, enfatiza su solución y menciona {{sector}}]</p>
 <p>Para comenzar a diseñar un plan de acción, pulsa el botón <strong>'Contactar con RSM'</strong> y envíanos un mensaje. Estaremos encantados de analizar los siguientes pasos contigo.</p>
 </section>

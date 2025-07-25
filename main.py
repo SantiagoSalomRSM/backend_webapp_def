@@ -117,6 +117,7 @@ def detect_form_type(payload: TallyWebhookPayload) -> str:
 
 def detect_sector(payload: TallyWebhookPayload) -> str:
     """Detecta el sector basándose en el valor de la pregunta question_2AA25p"""
+    payload = payload.model_dump_json()
     sector = next((field["value"] for field in payload.data["fields"] if field["key"] == "question_2AA25p"), None)
     return sector.strip() if sector else "unknown"
 

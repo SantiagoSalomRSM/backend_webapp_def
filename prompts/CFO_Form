@@ -25,6 +25,8 @@ La primera línea debe empezar exactamente con: <section class="intro">
 
 La última línea debe terminar exactamente con: </section>
 
+Debes hacer uso de <strong> para destacar soluciones clave y aspectos relevantes.
+
 RAZÓN TÉCNICA: Tu salida se inserta directamente en un sistema automatizado. Cualquier carácter fuera de las etiquetas <section> provocará un error crítico.
 
 REGENERACIÓN EN CASO DE DESVIACIÓN: Si detectas que has infringido cualquier regla, regenera internamente y solo emite la versión corregida.

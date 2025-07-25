@@ -115,6 +115,11 @@ def detect_form_type(payload: TallyWebhookPayload) -> str:
         return formName.strip()
     return mode
 
+def detect_sector(payload: TallyWebhookPayload) -> str:
+    """Detecta el sector basándose en el valor de la pregunta question_2AA25p"""
+    sector = next((field["value"] for field in payload.data["fields"] if field["key"] == "question_2AA25p"), None)
+    return sector.strip() if sector else "unknown"
+
 def load_prompt_from_file(prompt_name: str) -> str:
     """Carga un prompt desde un archivo en la carpeta de prompts."""
     path = f"prompts/{prompt_name}"
@@ -376,10 +381,11 @@ async def handle_tally_webhook(payload: TallyWebhookPayload):
         # Extraer información relevante del formulario
         form_type = detect_form_type(payload)
         response = summarize_payload(payload)
+        sector = detect_sector(payload)
         
-        cur.execute("""INSERT INTO formai_db (submission_id, status, result_client, result_consulting, user_responses, form_type, created_at, updated_at, payload) 
+        cur.execute("""INSERT INTO formai_db (submission_id, status, sector, result_client, result_consulting, user_responses, form_type, created_at, updated_at) 
                     VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW(), %s)""", 
-                    (submission_id, STATUS_PROCESSING, None, None, response, form_type, payload.data.model_dump_json()))
+                    (submission_id, STATUS_PROCESSING, sector, None, None, response, form_type))
         conn.commit()
 
         # Si llegamos aquí, la key se creó y se puso en 'processing'

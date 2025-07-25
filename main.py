@@ -376,9 +376,9 @@ async def handle_tally_webhook(payload: TallyWebhookPayload):
         form_type = detect_form_type(payload)
         response = summarize_payload(payload)
         
-        cur.execute("""INSERT INTO formai_db (submission_id, status, result_client, result_consulting, user_responses, form_type, created_at, updated_at) 
-                    VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())""", 
-                    (submission_id, STATUS_PROCESSING, None, None, response, form_type))
+        cur.execute("""INSERT INTO formai_db (submission_id, status, result_client, result_consulting, user_responses, form_type, created_at, updated_at, payload) 
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW(), %s)""", 
+                    (submission_id, STATUS_PROCESSING, None, None, response, form_type, payload))
         conn.commit()
 
         # Si llegamos aquí, la key se creó y se puso en 'processing'

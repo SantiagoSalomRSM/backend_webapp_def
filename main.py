@@ -386,7 +386,7 @@ async def handle_tally_webhook(payload: TallyWebhookPayload):
         sector = detect_sector(payload)
         
         cur.execute("""INSERT INTO formai_db (submission_id, status, sector, result_client, result_consulting, user_responses, form_type, created_at, updated_at) 
-                    VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW(), %s)""", 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())""", 
                     (submission_id, STATUS_PROCESSING, sector, None, None, response, form_type))
         conn.commit()
 

@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import psycopg2
 from openai import AzureOpenAI
+import json
 
 # Setup logger and Azure Monitor:
 logger = logging.getLogger("app")
@@ -378,7 +379,7 @@ async def handle_tally_webhook(payload: TallyWebhookPayload):
         
         cur.execute("""INSERT INTO formai_db (submission_id, status, result_client, result_consulting, user_responses, form_type, created_at, updated_at, payload) 
                     VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW(), %s)""", 
-                    (submission_id, STATUS_PROCESSING, None, None, response, form_type, payload))
+                    (submission_id, STATUS_PROCESSING, None, None, response, form_type, payload.data.model_dump_json()))
         conn.commit()
 
         # Si llegamos aquí, la key se creó y se puso en 'processing'

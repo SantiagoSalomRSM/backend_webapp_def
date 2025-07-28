@@ -9,7 +9,7 @@ from openai import OpenAI
 import psycopg2
 from openai import AzureOpenAI
 
-# Setup logger and Azure Monitor:
+# Setup logger
 logger = logging.getLogger("app")
 logger.setLevel(logging.INFO)
 
@@ -20,6 +20,7 @@ app = FastAPI()
 MODEL = "gemini" 
 # MODEL = "openai" 
 
+# Inicializar el cliente de la IA seleccionada
 if MODEL == "gemini":
     logger.info("Usando modelo Gemini para la generación de contenido.")
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -81,13 +82,6 @@ class TallyWebhookPayload(BaseModel):
     eventType: str
     data: TallyResponseData
 
-# Placeholder model for PUT data (adjust as needed)
-class UpdateResultPayload(BaseModel):
-    new_result: str
-    reason: Optional[str] = None
-
-# Inicializar el cliente de OpenAI
-
 def summarize_payload(payload: TallyWebhookPayload) -> str:
     """Genera un resumen entendible del Tally payload."""
     lines = ["Respuestas:"]
@@ -105,7 +99,7 @@ def summarize_payload(payload: TallyWebhookPayload) -> str:
     return "\n".join(lines)
 
 def detect_form_type(payload: TallyWebhookPayload) -> str:
-    """Detecta el form type basándose en la primera label o key."""
+    """Detecta el form type basándose en el formName."""
     mode = "unknown"  # Valor por defecto
     if payload.data.formName:
         formName = payload.data.formName
@@ -123,7 +117,7 @@ def detect_sector(payload: TallyWebhookPayload) -> str:
     return "unknown"
 
 def load_prompt_from_file(prompt_name: str) -> str:
-    """Carga un prompt desde un archivo en la carpeta de prompts."""
+    """Carga la primera parte del prompt desde un archivo en la carpeta de prompts."""
     path = f"prompts/{prompt_name}"
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -144,7 +138,7 @@ def generate_prompt(payload: TallyWebhookPayload, submission_id: str, mode: str)
         prompt_text = load_prompt_from_file(mode)
         prompt_parts = [prompt_text]
 
-        # ... ( lógica para construir el prompt con payload.data.fields) ... 
+        # lógica para construir el prompt con payload.data.fields
         for field in payload.data.fields:
             label = field.label
             label_str = "null" if label is None else str(label).strip()
@@ -161,7 +155,7 @@ def generate_prompt(payload: TallyWebhookPayload, submission_id: str, mode: str)
             else:
                 value_str = str(value)
             prompt_parts.append(f"Pregunta: {label_str} - Respuesta: {value_str}")
-
+            
 # -------------------------------------------------
     full_prompt = "".join(prompt_parts)
     return full_prompt

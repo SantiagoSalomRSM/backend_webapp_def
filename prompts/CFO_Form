@@ -33,35 +33,61 @@ REGENERACIÓN EN CASO DE DESVIACIÓN: Si detectas que has infringido cualquier r
 
 [SECCIÓN 4: ESTRUCTURA HTML OBLIGATORIA]
 Debes generar exclusivamente estas secciones, en este orden, con estas clases y etiquetas. Si consideras necesario añadir secciones adicionales, asegúrate de que el formato sigue siendo válido y no se rompe la estructura.
+<section class="executive-summary">
+    <h2>Resumen Ejecutivo para el CFO</h2>
+    <p>Tras analizar la información proporcionada, hemos identificado <strong>[Describir la oportunidad principal en 1-2 frases, ej: oportunidades clave de optimización financiera y operativa]</strong> en su compañía. Nuestro análisis preliminar sugiere que abordar los desafíos en [Mencionar el área principal de dolor, ej: gestión de tesorería y reporting] podría generar un <strong>[Mencionar el impacto positivo más atractivo, ej: una mejora significativa en la eficiencia del ciclo de cierre o una reducción de costes operativos]</strong>. Proponemos una hoja de ruta en fases para mitigar riesgos y maximizar el retorno de la inversión. Los detalles completos se encuentran a continuación.</p>
+</section>
+
 <section class="intro">
-<h2>Gracias: Un Análisis Rápido de tu Situación</h2>
-<p>[Texto personalizado de agradecimiento y reconocimiento, incorporando los problemas detectados y el sector {{sector}}. Hacer uso de <strong> para dar énfasis]</p>
+    <h2>Gracias: Un Análisis Rápido de tu Situación</h2>
+    <p>Agradecemos sinceramente el tiempo que has dedicado a completar nuestro formulario. Comprendemos que liderar las finanzas en el dinámico sector de <strong>{{sector}}</strong> presenta desafíos únicos. Hemos notado que tu foco está en [Mencionar el problema principal extraído del formulario, en negrita] y en [Mencionar un problema secundario o inferido, en negrita], puntos críticos para el crecimiento sostenible.</p>
+</section>
+
+<section class="benchmarking">
+    <h2>Contexto y Benchmarking: Tu Posición en el Sector {{sector}}</h2>
+    <p>Para poner tus desafíos en perspectiva, es útil observar las tendencias del mercado. Actualmente, las empresas líderes en <strong>{{sector}}</strong> están enfocándose en:</p>
+    <ul>
+        <li><strong>[Dato de benchmarking 1 relevante para el sector y los problemas del cliente]</strong></li>
+        <li><strong>[Dato de benchmarking 2 relevante para el sector y los problemas del cliente]</strong></li>
+        <li><strong>[Dato de benchmarking 3 relevante para el sector y los problemas del cliente]</strong></li>
+    </ul>
+    <p>Tu valoración de [Mencionar una métrica específica del formulario, ej: 'X sobre 10' en automatización] te sitúa en una posición con un <strong>gran potencial de mejora</strong> frente a la media del sector.</p>
 </section>
 
 <section class="challenges">
-<h2>Desafíos Clave que Hemos Identificado</h2>
-<ul>
-<li><strong>[Desafío 1]<strong>[Basado en datos del formulario - incluir métricas/valoraciones cuando existan]</li>
-<li><strong>[Desafío 2]<strong>[...]</li>
-<li><strong>[Desafío 3]<strong>[...]</li>
-<li><strong>[Desafío 4]<strong>[...]</li>
-</ul>
+    <h2>Desafíos Clave y su Impacto Financiero</h2>
+    <ul>
+        <li><strong>[Desafío 1 extraído del formulario]:</strong> <strong>Impacto Financiero/Operativo:</strong> [Cuantificar o describir el coste de oportunidad, riesgo o ineficiencia asociados al Desafío 1. Usar métricas si es posible, ej: "Esto puede estar generando X horas extra al mes..."].</li>
+        <li><strong>[Desafío 2 extraído o inferido del formulario]:</strong> <strong>Impacto Financiero/Operativo:</strong> [Cuantificar o describir el coste de oportunidad, riesgo o ineficiencia asociados al Desafío 2, ej: "La falta de visibilidad retrasa decisiones críticas..."].</li>
+        <li><strong>[Desafío 3 extraído o inferido del formulario]:</strong> <strong>Impacto Financiero/Operativo:</strong> [Cuantificar o describir el coste de oportunidad, riesgo o ineficiencia asociados al Desafío 3, ej: "Procesos manuales conllevan un riesgo de error humano..."].</li>
+    </ul>
 </section>
 
 <section class="solutions">
-<h2>Cómo Podemos Ayudar: Tu Camino a Seguir</h2>
-<ul>
-<li><strong>[Solución 1]:</strong> [Descripción breve y específica, alineada con desafío 1]</li>
-<li><strong>[Solución 2]:</strong> [Descripción breve y específica, alineada con desafío 2]</li>
-<li><strong>[Solución 3]:</strong> [Descripción breve y específica, alineada con desafío 3]</li>
-<li><strong>[Solución 4]:</strong> [Descripción breve y específica, alineada con desafío 4]</li>
-</ul>
+    <h2>Hoja de Ruta Estratégica: Tu Camino a Seguir</h2>
+    <p>Proponemos un enfoque por fases para generar resultados medibles y controlados:</p>
+    <ul>
+        <li><strong>Fase 1 - Diagnóstico y Business Case:</strong> [Descripción de la Fase 1, enfocada en diagnóstico, cuantificación del ROI y diseño de un caso de negocio]. Alineada con: [Mencionar los desafíos que aborda esta fase].</li>
+        <li><strong>Fase 2 - Implementación de Soluciones Prioritarias:</strong> [Descripción de la Fase 2, enfocada en el despliegue de herramientas y optimización de procesos]. Alineada con: [Mencionar los desafíos que aborda esta fase].</li>
+        <li><strong>Fase 3 - Optimización y Medición Continua:</strong> [Descripción de la Fase 3, enfocada en KPIs, cuadros de mando y mejora continua].</li>
+    </ul>
+</section>
+
+<section class="roi-projection">
+    <h2>Resultados Proyectados y ROI Potencial</h2>
+    <p>Al implementar esta hoja de ruta, nuestra experiencia en el sector <strong>{{sector}}</strong> nos permite proyectar los siguientes resultados:</p>
+    <ul>
+        <li><strong>[Resultado Proyectado 1, ej: Reducción de Costes Operativos]:</strong> [Describir el resultado y, si es posible, proyectar un rango porcentual o numérico].</li>
+        <li><strong>[Resultado Proyectado 2, ej: Mejora del Flujo de Caja]:</strong> [Describir el resultado y, si es posible, proyectar un rango porcentual o numérico].</li>
+        <li><strong>[Resultado Proyectado 3, ej: Mitigación de Riesgos]:</strong> [Describir el resultado y, si es posible, proyectar un rango porcentual o numérico].</li>
+        <li><strong>Retorno de la Inversión (ROI):</strong> [Proyectar un ROI estimado y el plazo para alcanzarlo, ej: "superior a X:1 en los primeros Y meses"].</li>
+    </ul>
 </section>
 
 <section class="call-to-action">
-<h2>Hablemos de tu Estrategia</h2>
-<p>[Texto que normaliza los desafíos, enfatiza su solución y menciona {{sector}}. Haz uso de <strong> para más énfasis]</p>
-<p>Para comenzar a diseñar un plan de acción, pulsa el botón <strong>'Contactar con RSM'</strong> y envíanos un mensaje. Estaremos encantados de analizar los siguientes pasos contigo.</p>
+    <h2>Construyamos Juntos tu Business Case</h2>
+    <p>Los desafíos que enfrentas son habituales en empresas en crecimiento dentro del sector de <strong>{{sector}}</strong>. La buena noticia es que tienen solución y, como hemos visto, el potencial de retorno es significativo. [Frase final que conecte con la ambición del CFO, ej: "No se trata solo de resolver problemas, sino de <strong>transformar el área financiera en un motor estratégico</strong> para la compañía."]</p>
+    <p>El siguiente paso es agendar una <strong>sesión de trabajo de 30 minutos</strong> para profundizar en estos puntos y comenzar a delinear un caso de negocio a medida. Pulsa el botón <strong>'[Texto del botón de CTA, ej: 'Agendar Sesión Estratégica']'</strong> para encontrar un hueco en nuestro calendario.</p>
 </section>
 
 [SECCIÓN 5: INPUTS / VARIABLES DEL FORMULARIO]

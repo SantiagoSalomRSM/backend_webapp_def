@@ -109,9 +109,9 @@ def detect_form_type(payload: TallyWebhookPayload) -> str:
     return mode
 
 def detect_sector(payload: TallyWebhookPayload) -> str:
-    """Detecta el sector basándose en el valor de la pregunta question_2AA25p"""
+    """Detecta el sector basándose en las respuestas del formulario."""
     for field in payload.data.fields:
-        if field.key == "question_2AA25p":
+        if field.label.strip() == "¿De qué sector es tu empresa o grupo?":
             sector = field.value
             return sector.strip() if sector else "unknown"
     return "unknown"

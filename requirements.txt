@@ -7,3 +7,4 @@ openai
 dotenv
 psycopg2-binary
 azure-ai-inference
+azure-core

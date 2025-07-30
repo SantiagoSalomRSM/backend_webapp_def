@@ -10,6 +10,7 @@ import psycopg2
 from openai import AzureOpenAI
 from azure.ai.inference import ChatCompletionsClient
 from azure.ai.inference.models import SystemMessage, UserMessage
+from azure.core.credentials import AzureKeyCredential
 
 # Setup logger
 logger = logging.getLogger("app")
@@ -61,7 +62,7 @@ elif MODEL == "llama":
     else:
         client = ChatCompletionsClient(
             endpoint=llama_endpoint,
-            credential=llama_key,
+            credential=AzureKeyCredential(llama_key),
             api_version="2024-05-01-preview"
         )
 

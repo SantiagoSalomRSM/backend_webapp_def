@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import psycopg2
 from openai import AzureOpenAI
+from azure.ai.inference import ChatCompletionsClient
+from azure.ai.inference.models import SystemMessage, UserMessage
 
 # Setup logger
 logger = logging.getLogger("app")
@@ -17,8 +19,9 @@ logger.setLevel(logging.INFO)
 app = FastAPI()
 
 # --- Elegir el modelo a usar ---
-MODEL = "gemini" 
-# MODEL = "openai" 
+# MODEL = "gemini" 
+MODEL = "openai"
+# MODEL = "llama"  
 
 # Inicializar el cliente de la IA seleccionada
 if MODEL == "gemini":
@@ -48,7 +51,19 @@ elif MODEL == "openai":
             )
         except Exception as e:
             logger.error(f"Error configurando el cliente de OpenAI: {e}")
-
+elif MODEL == "llama":
+    logger.info("Usando modelo Llama para la generación de contenido.")
+    llama_endpoint = os.getenv("AZURE_LLM_ENDPOINT")
+    llama_key = os.getenv("AZURE_LLM_API_KEY")
+    llama_model_name = os.getenv("AZURE_LLM_MODEL_NAME") 
+    if not llama_endpoint or not llama_key:
+        logger.error("Error: Las variables de entorno AZURE_LLM_ENDPOINT o AZURE_LLM_API_KEY no están configuradas.")
+    else:
+        client = ChatCompletionsClient(
+            endpoint=llama_endpoint,
+            credential=llama_key,
+            api_version="2024-05-01-preview"
+        )
 
 # --- Constantes de Estado y TTL ---
 STATUS_PROCESSING = "processing"
@@ -58,6 +73,7 @@ STATUS_NOT_FOUND = "not_found" # Estado implícito si no existe la key
 GEMINI_ERROR_MARKER = "ERROR_PROCESSING_GEMINI" # Marcador en el resultado
 DEEPSEEK_ERROR_MARKER = "ERROR_PROCESSING_DEEPSEEK" # Marcador en el resultado
 OPENAI_ERROR_MARKER = "ERROR_PROCESSING_OPENAI" # Marcador en el resultado
+LLAMA_ERROR_MARKER = "ERROR_PROCESSING_LLAMA" # Marcador en el resultado
 
 # --- Modelos Pydantic ---
 class TallyOption(BaseModel):
@@ -237,6 +253,90 @@ async def generate_openai_response(submission_id: str, prompt: str, mode: str, c
     
     logger.info(f"[{submission_id}] Tarea OpenAI finalizada.")
 
+# --- Lógica para interactuar con Llama ---
+async def generate_llama_response(submission_id: str, prompt: str, mode: str, cur: Any, conn: Any) -> None:
+    """Genera una respuesta de llama y actualiza la base de datos con el resultado."""
+    logger.info(f"[{submission_id}] Iniciando tarea llama.")
+    
+    try:
+        # --- Llamada a llama API ---
+        response = client.complete(
+            messages=[
+                SystemMessage(content="You are a helpful assistant."),
+                UserMessage(content=prompt),
+            ],
+            max_tokens=2048,
+            temperature=0.8,
+            top_p=0.1,
+            presence_penalty=0.0,
+            frequency_penalty=0.0,
+            model=llama_model_name, 
+        )
+
+        result_text = response.choices[0].message.content
+
+        # --- Actualizar Base de datos con el resultado ---
+        if result_text:
+
+            # --- Limpieza del mensaje ---
+            clean_text = result_text.strip()
+
+            if clean_text.startswith("```html"):
+                clean_text = clean_text.removeprefix("```html")
+
+            if clean_text.endswith("```"):
+                clean_text = clean_text.removesuffix("```")
+
+            result_text = clean_text.strip()
+
+            if mode == "CONSULTING":
+                try:
+                    cur.execute("""UPDATE formai_db 
+                                SET status = %s, result_consulting = %s 
+                                WHERE submission_id = %s""", 
+                                (STATUS_SUCCESS, result_text, submission_id))
+                    conn.commit()
+                    logger.info(f"[{submission_id}] Resultado guardado en la base de datos.")
+                except Exception as e:
+                    logger.error(f"[{submission_id}] Error guardando resultado en base de datos: {e}")
+            else:
+                try:
+                    cur.execute("""UPDATE formai_db 
+                                SET status = %s, result_client = %s 
+                                WHERE submission_id = %s""", 
+                                (STATUS_SUCCESS, result_text, submission_id))
+                    conn.commit()
+                    logger.info(f"[{submission_id}] Resultado guardado en la base de datos.")
+                except Exception as e:
+                    logger.error(f"[{submission_id}] Error guardando resultado en base de datos: {e}")
+        else:
+            # Si no hay texto válido, guardar error
+            try:
+                cur.execute("""UPDATE formai_db 
+                            SET status = %s, result_client = %s, result_consulting = %s 
+                            WHERE submission_id = %s""", 
+                            (STATUS_ERROR, LLAMA_ERROR_MARKER, LLAMA_ERROR_MARKER, submission_id))
+                conn.commit()
+                logger.warning(f"[{submission_id}] Resultado vacío. Marcador de error guardado en la base de datos.")
+            except Exception as e:
+                logger.error(f"[{submission_id}] Error guardando marcador de error en base de datos: {e}")
+
+    except Exception as e:
+        logger.error(f"[{submission_id}] Error llamando a llama: {e}")
+        try:
+            # Intenta guardar el estado de error incluso si llama falló
+            cur.execute("""UPDATE formai_db 
+                        SET status = %s, result_client = %s, result_consulting = %s 
+                        WHERE submission_id = %s""", 
+                        (STATUS_ERROR, LLAMA_ERROR_MARKER, LLAMA_ERROR_MARKER, submission_id))
+            conn.commit()
+            logger.error(f"[{submission_id}] Estado de error guardado en la base de datos.")
+        except Exception as e:
+            logger.error(f"[{submission_id}] Error guardando estado de error en base de datos: {e}")
+    
+    logger.info(f"[{submission_id}] Tarea llama finalizada.")
+
+# --- Lógica para interactuar con Gemini ---
 async def generate_gemini_response(submission_id: str, prompt: str, mode: str, cur: Any, conn: Any) -> None:
     """Genera una respuesta de Gemini y actualiza base de datos con el resultado."""
     logger.info(f"[{submission_id}] Iniciando tarea Gemini.")
@@ -300,26 +400,26 @@ async def generate_gemini_response(submission_id: str, prompt: str, mode: str, c
                 cur.execute("""UPDATE formai_db 
                             SET status = %s, result_client = %s, result_consulting = %s 
                             WHERE submission_id = %s""", 
-                            (STATUS_ERROR, OPENAI_ERROR_MARKER, OPENAI_ERROR_MARKER, submission_id))
+                            (STATUS_ERROR, GEMINI_ERROR_MARKER, GEMINI_ERROR_MARKER, submission_id))
                 conn.commit()
                 logger.warning(f"[{submission_id}] Resultado vacío. Marcador de error guardado en la base de datos.")
             except Exception as e:
                 logger.error(f"[{submission_id}] Error guardando marcador de error en base de datos: {e}")
 
     except Exception as e:
-        logger.error(f"[{submission_id}] Error llamando a OpenAI: {e}")
+        logger.error(f"[{submission_id}] Error llamando a gemini: {e}")
         try:
-            # Intenta guardar el estado de error incluso si OpenAI falló
+            # Intenta guardar el estado de error incluso si gemini falló
             cur.execute("""UPDATE formai_db 
                         SET status = %s, result_client = %s, result_consulting = %s 
                         WHERE submission_id = %s""", 
-                        (STATUS_ERROR, OPENAI_ERROR_MARKER, OPENAI_ERROR_MARKER, submission_id))
+                        (STATUS_ERROR, GEMINI_ERROR_MARKER, GEMINI_ERROR_MARKER, submission_id))
             conn.commit()
             logger.error(f"[{submission_id}] Estado de error guardado en la base de datos.")
         except Exception as e:
             logger.error(f"[{submission_id}] Error guardando estado de error en base de datos: {e}")
     
-    logger.info(f"[{submission_id}] Tarea OpenAI finalizada.")
+    logger.info(f"[{submission_id}] Tarea gemini finalizada.")
 
 # --- Endpoints FastAPI ---
 @app.post("/webhook")
@@ -391,19 +491,19 @@ async def handle_tally_webhook(payload: TallyWebhookPayload):
         if MODEL == "openai":
             # --- Generación del Prompt modularizada ---
             prompt_cliente = generate_prompt(payload, submission_id, form_type)
-            logger.debug(f"[{submission_id}] Prompt para Gemini: {prompt_cliente[:200]}...")
+            logger.debug(f"[{submission_id}] Prompt para OpenAi: {prompt_cliente[:200]}...")
         
             # --- Iniciar Tarea en Segundo Plano ---
             await generate_openai_response(submission_id, prompt_cliente, form_type, cur, conn)
-            logger.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
+            logger.info(f"[{submission_id}] Tarea de OpenAi iniciada en segundo plano.")
         
             # --- Generación del Prompt para consultoría ---
             prompt_consulting = generate_prompt(payload, submission_id, "CONSULTING")
-            logger.debug(f"[{submission_id}] Prompt para Gemini (Consulting): {prompt_consulting[:200]}...")
+            logger.debug(f"[{submission_id}] Prompt para OpenAi (Consulting): {prompt_consulting[:200]}...")
 
             # --- Iniciar Tarea en Segundo Plano (después de respuesta cliente) ---
             await generate_openai_response(submission_id, prompt_consulting, "CONSULTING", cur, conn)
-            logger.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
+            logger.info(f"[{submission_id}] Tarea de OpenAi iniciada en segundo plano.")
 
         elif MODEL == "gemini":
             # --- Generación del Prompt modularizada ---
@@ -421,6 +521,23 @@ async def handle_tally_webhook(payload: TallyWebhookPayload):
             # --- Iniciar Tarea en Segundo Plano (después de respuesta cliente) ---
             await generate_gemini_response(submission_id, prompt_consulting, "CONSULTING", cur, conn)
             logger.info(f"[{submission_id}] Tarea de Gemini iniciada en segundo plano.")
+
+        elif MODEL == "llama":
+            # --- Generación del Prompt modularizada ---
+            prompt_cliente = generate_prompt(payload, submission_id, form_type)
+            logger.debug(f"[{submission_id}] Prompt para Llama: {prompt_cliente[:200]}...")
+        
+            # --- Iniciar Tarea en Segundo Plano ---
+            await generate_llama_response(submission_id, prompt_cliente, form_type, cur, conn)
+            logger.info(f"[{submission_id}] Tarea de Llama iniciada en segundo plano.")
+        
+            # --- Generación del Prompt para consultoría ---
+            prompt_consulting = generate_prompt(payload, submission_id, "CONSULTING")
+            logger.debug(f"[{submission_id}] Prompt para Llama (Consulting): {prompt_consulting[:200]}...")
+
+            # --- Iniciar Tarea en Segundo Plano (después de respuesta cliente) ---
+            await generate_llama_response(submission_id, prompt_consulting, "CONSULTING", cur, conn)
+            logger.info(f"[{submission_id}] Tarea de Llama iniciada en segundo plano.")
 
         return {"message": f"Webhook processed successfully for submission {submission_id}."}, 200
     

@@ -21,8 +21,8 @@ app = FastAPI()
 
 # --- Elegir el modelo a usar ---
 # MODEL = "gemini" 
-# MODEL = "openai"
-MODEL = "llama"  
+MODEL = "openai"
+# MODEL = "llama"  
 
 # Inicializar el cliente de la IA seleccionada
 if MODEL == "gemini":
